@@ -8,7 +8,8 @@ This PowerShell script **automatically organizes files** in a directory by sorti
 - **Error handling** during file movement
 - **Fallback to "Other" folder** for uncategorized files
 - **Customizable categories**
-NOTE: when you right click on any location it will show " organise file here" thing click it and it will sort on that location 
+#NOTE:
+** when you right click on any location it will show " organise file here" thing click it and it will sort on that location 
 but take care of the location of script and in registry file (c drive ---> Scripts ---> sort_files.ps1)
 
 ##  Usage:
