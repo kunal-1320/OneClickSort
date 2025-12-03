@@ -1,65 +1,66 @@
-# Save this as sort_files.ps1
+# --- SORT BY EXTENSION (jpg folder, pdf folder, etc.) ---
 
-# Define common file categories
-$categories = @{
-    "Compressed Files" = @('.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz')
-    "Images" = @('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.svg', '.webp')
-    "Videos" = @('.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg')
-    "Audio" = @('.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma', '.opus')
-    "Documents" = @('.doc', '.docx', '.pdf', '.txt', '.rtf', '.odt', '.xls', '.xlsx', '.ppt', '.pptx', '.csv')
-    "Executables" = @('.exe', '.msi', '.bat', '.cmd', '.sh', '.app')
-    "Code" = @('.c', '.cpp', '.h', '.java', '.py', '.js', '.html', '.css', '.php', '.rb', '.go', '.ts', '.sql')
+# Get the current directory (The folder you right-clicked in)
+$currentDir = Get-Location
+Write-Host "Sorting by extension in: $currentDir" -ForegroundColor Cyan
+
+# Files to ALWAYS ignore
+$ignoredFiles = @('sort_files.ps1', 'Run_Sorter.bat')
+
+# Get all files in the CURRENT directory
+$files = Get-ChildItem -LiteralPath $currentDir -File | Where-Object { $_.Extension -ne '.lnk' -and $_.Name -notin $ignoredFiles }
+
+if ($files.Count -eq 0) {
+    Write-Host "No files found to sort." -ForegroundColor Yellow
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Exit
 }
 
-# Get the script's directory
-$scriptDir = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition
-
-# Change to the script's directory
-Set-Location $scriptDir
-
-# Get all files in the current directory (excluding subdirectories and .lnk files)
-$files = Get-ChildItem -File | Where-Object { $_.Extension -ne '.lnk' }
-
-# Create a hashtable for quick extension lookup
-$extensionMap = @{}
-foreach ($category in $categories.Keys) {
-    foreach ($extension in $categories[$category]) {
-        $extensionMap[$extension] = $category
-    }
-}
-
+$counter = 0
 foreach ($file in $files) {
-    # Skip the script file itself
-    if ($file.Name -eq $MyInvocation.MyCommand.Name) { continue }
+    $counter++
+    $percent = [math]::Round(($counter / $files.Count) * 100)
+    Write-Progress -Activity "Sorting Files..." -Status "Moving $($file.Name)" -PercentComplete $percent
+
+    # Get extension (e.g., ".jpg") and remove the dot (e.g., "jpg")
+    $extension = $file.Extension.TrimStart('.').ToLower()
     
-    $extension = $file.Extension.ToLower()
-    
-    # Determine the category or use the extension as folder name
-    $category = $extensionMap[$extension]
-    if (-not $category) {
-        $category = $extension.TrimStart('.')
-        if ($category -eq '') {
-            $category = "NoExtension"
-        }
+    # Handle files with no extension
+    if ([string]::IsNullOrWhiteSpace($extension)) {
+        $folderName = "No_Extension"
+    } else {
+        $folderName = $extension
     }
+
+    $destFolder = Join-Path $currentDir $folderName
     
-    $destination = Join-Path $scriptDir $category
-    
-    # Create folder if it doesn't exist
-    if (-not (Test-Path $destination)) {
-        New-Item -ItemType Directory -Path $destination | Out-Null
+    # Create folder if it doesn't exist (e.g., "C:\Users\...\Documents\jpg")
+    if (-not (Test-Path $destFolder)) {
+        New-Item -ItemType Directory -Path $destFolder | Out-Null
     }
-    
-    # Move file to its corresponding folder
+
+    $destPath = Join-Path $destFolder $file.Name
+
+    # HANDLE DUPLICATES (If file already exists, rename it)
+    if (Test-Path $destPath) {
+        $i = 1
+        $baseName = $file.BaseName
+        do {
+            $newName = "$baseName ($i).$extension"
+            $destPath = Join-Path $destFolder $newName
+            $i++
+        } while (Test-Path $destPath)
+    }
+
     try {
-        Move-Item $file.FullName -Destination $destination -ErrorAction Stop
-        Write-Host "Moved $($file.Name) to $category folder" -ForegroundColor Green
+        Move-Item $file.FullName -Destination $destPath -ErrorAction Stop
     }
     catch {
-        Write-Host "Failed to move $($file.Name): $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Error moving $($file.Name): $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
-Write-Host "`nFile sorting complete!" -ForegroundColor Green
-Write-Host "Press any key to exit..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+Write-Progress -Activity "Sorting Files..." -Completed
+Write-Host "Done! Sorted $($files.Count) files into extension folders." -ForegroundColor Green
+Start-Sleep -Seconds 2
