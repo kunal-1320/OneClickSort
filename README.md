@@ -1,15 +1,17 @@
-# 📂 File Sorting Script
+# File Sorting Script
 
 This PowerShell script **automatically organizes files** in a directory by sorting them into predefined folders based on their file extensions.
 
-## 🔑 Features:
+##Features:
 - **Predefined file categories** (Documents, Images, Videos, Music, Archives, Executables, Code)
 - **Automatically creates folders** if they don't exist
 - **Error handling** during file movement
 - **Fallback to "Other" folder** for uncategorized files
 - **Customizable categories**
+NOTE: when you right click on any location it will show " organise file here" thing click it and it will sort on that location 
+but take care of the location of script and in registry file (c drive ---> Scripts ---> sort_files.ps1)
 
-## 🛠️ Usage:
+##  Usage:
 1. Place the `sort_files.ps1` script in the directory you want to organize.
 2. Run the script in **PowerShell**.
 3. The script will sort your files into corresponding folders:
